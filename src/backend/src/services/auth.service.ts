@@ -208,10 +208,57 @@ class AuthService {
     };
   }
 
-  async getProfile(email: string = 'enzo.g@myges.fr'): Promise<UserResponse> {
-    const cleanEmail = email.toLowerCase().trim();
-    const user = this.users.get(cleanEmail) || this.users.get('enzo.g@myges.fr')!;
-    return this.sanitizeUser(user);
+  parseToken(token?: string): string | null {
+    if (!token) return null;
+    try {
+      const raw = token.startsWith('Bearer ') ? token.slice(7).trim() : token.trim();
+      if (raw.startsWith('token-')) {
+        const decoded = Buffer.from(raw.slice(6), 'base64').toString('utf8');
+        const [email] = decoded.split(':');
+        return email ? email.toLowerCase().trim() : null;
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  }
+
+  async getProfile(email?: string): Promise<UserResponse> {
+    const cleanEmail = email ? email.toLowerCase().trim() : 'enzo.g@myges.fr';
+    let userRecord = this.users.get(cleanEmail);
+
+    if (!userRecord && env.DATABASE_URL) {
+      try {
+        const pool = getDbPool();
+        const dbRes = await pool.query(`SELECT * FROM users WHERE LOWER(email) = $1 LIMIT 1;`, [cleanEmail]);
+        if (dbRes.rows.length > 0) {
+          const row = dbRes.rows[0];
+          userRecord = {
+            id: String(row.id),
+            email: row.email,
+            passwordHash: row.password,
+            firstName: row.first_name,
+            lastName: row.last_name,
+            role: row.role,
+            studentId: row.student_id,
+            phone: row.phone,
+            birthDate: row.birth_date ? row.birth_date.toISOString().split('T')[0] : undefined,
+            address: row.address,
+            avatarInitials: `${(row.first_name || '')[0] || ''}${(row.last_name || '')[0] || ''}`.toUpperCase(),
+            createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
+          };
+          this.users.set(cleanEmail, userRecord);
+        }
+      } catch (err: any) {
+        console.warn('⚠️ Erreur DB getProfile:', err.message);
+      }
+    }
+
+    if (!userRecord) {
+      userRecord = this.users.get('enzo.g@myges.fr') || Array.from(this.users.values())[0];
+    }
+
+    return this.sanitizeUser(userRecord);
   }
 
   async listUsers(): Promise<UserResponse[]> {

@@ -57,24 +57,36 @@ function toggleMobileMenu() {
   if (sidebar) sidebar.classList.toggle('open');
 }
 
+function getCachedUser() {
+  try {
+    const raw = localStorage.getItem('myges_user');
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 // Dynamic greeting
-function setGreeting(elementId) {
+function setGreeting(elementId, customName) {
   const el = document.getElementById(elementId);
   if (!el) return;
+  const user = getCachedUser();
+  const name = customName || (user?.firstName ? user.firstName : 'Étudiant');
   const hour = new Date().getHours();
   let greeting;
-  if (hour >= 6 && hour < 12) greeting = 'Bonjour Enzo 👋';
-  else if (hour >= 12 && hour < 18) greeting = 'Bon après-midi Enzo';
-  else if (hour >= 18 && hour < 22) greeting = 'Bonsoir Enzo';
-  else greeting = 'Bonne nuit Enzo 🌙';
+  if (hour >= 6 && hour < 12) greeting = `Bonjour ${name} 👋`;
+  else if (hour >= 12 && hour < 18) greeting = `Bon après-midi ${name}`;
+  else if (hour >= 18 && hour < 22) greeting = `Bonsoir ${name}`;
+  else greeting = `Bonne nuit ${name} 🌙`;
   el.textContent = greeting;
 }
 
 // Build sidebar HTML
 function buildSidebar(activePage, profile) {
-  const userName = profile ? `${profile.firstName} ${profile.lastName}` : 'Enzo G.';
-  const userRole = profile ? profile.role : 'B3 Informatique';
-  const userInitials = profile ? profile.avatarInitials : 'EG';
+  const user = profile || getCachedUser();
+  const userName = user ? `${user.firstName} ${user.lastName}` : 'Mon Profil';
+  const userRole = user ? user.role : 'Portail étudiant';
+  const userInitials = user ? (user.avatarInitials || `${(user.firstName||'')[0]||''}${(user.lastName||'')[0]||''}`.toUpperCase()) : 'ME';
 
   const pages = [
     { section: 'Principal' },
@@ -146,6 +158,7 @@ async function logoutUser() {
     await apiFetch('/auth/logout', { method: 'POST' }).catch(() => {});
   } finally {
     localStorage.removeItem('myges_token');
+    localStorage.removeItem('myges_user');
     showToast('Déconnexion réussie', 'info');
     setTimeout(() => {
       window.location.href = 'index.html';
@@ -164,12 +177,18 @@ async function initSidebar(activePage) {
       const res = await apiFetch('/auth/me');
       if (res.success && res.data) {
         const profile = res.data;
+        localStorage.setItem('myges_user', JSON.stringify(profile));
         const nameEl = document.getElementById('sidebarName');
         const roleEl = document.getElementById('sidebarRole');
         const avatarEl = document.getElementById('sidebarAvatar');
         if (nameEl) nameEl.textContent = `${profile.firstName} ${profile.lastName}`;
         if (roleEl) roleEl.textContent = profile.role;
         if (avatarEl) avatarEl.textContent = profile.avatarInitials;
+
+        const greetingEl = document.getElementById('greetingText');
+        if (greetingEl) {
+          setGreeting('greetingText', profile.firstName);
+        }
       }
     } catch (e) {
       // Fallback to default

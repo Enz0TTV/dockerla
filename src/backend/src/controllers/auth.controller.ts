@@ -19,8 +19,9 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   });
 };
 
-export const getMe = async (_req: Request, res: Response): Promise<void> => {
-  const profile = await authService.getProfile();
+export const getMe = async (req: Request, res: Response): Promise<void> => {
+  const email = authService.parseToken(req.headers.authorization);
+  const profile = await authService.getProfile(email || undefined);
 
   ApiResponse.success({
     res,
@@ -38,7 +39,8 @@ export const listUsers = async (_req: Request, res: Response): Promise<void> => 
 };
 
 export const updateProfile = async (req: Request, res: Response): Promise<void> => {
-  const updated = await authService.updateProfile(req.body);
+  const email = authService.parseToken(req.headers.authorization);
+  const updated = await authService.updateProfile(req.body, email || undefined);
 
   ApiResponse.success({
     res,
@@ -48,8 +50,9 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
 };
 
 export const changePassword = async (req: Request, res: Response): Promise<void> => {
+  const email = authService.parseToken(req.headers.authorization);
   const { currentPassword, newPassword } = req.body;
-  await authService.changePassword(currentPassword, newPassword);
+  await authService.changePassword(currentPassword, newPassword, email || undefined);
 
   ApiResponse.success({
     res,

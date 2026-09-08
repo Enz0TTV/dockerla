@@ -83,13 +83,33 @@ describe('Portal API Endpoints', () => {
     expect(res.body.data.length).toBeGreaterThanOrEqual(2);
   });
 
-  it('GET /api/v1/auth/me should return student profile', async () => {
+  it('GET /api/v1/auth/me should return student profile by default', async () => {
     const res = await request(app).get('/api/v1/auth/me');
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.data.firstName).toBe('Enzo');
     expect(res.body.data.role).toBe('B3 Informatique');
+  });
+
+  it('GET /api/v1/auth/me with Authorization token should return the authenticated user', async () => {
+    // Login as admin first
+    const loginRes = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: 'admin@myges.fr', password: 'admin123' });
+
+    const token = loginRes.body.data.token;
+
+    const meRes = await request(app)
+      .get('/api/v1/auth/me')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(meRes.status).toBe(200);
+    expect(meRes.body.success).toBe(true);
+    expect(meRes.body.data.email).toBe('admin@myges.fr');
+    expect(meRes.body.data.firstName).toBe('Admin');
+    expect(meRes.body.data.lastName).toBe('Système');
+    expect(meRes.body.data.role).toBe('admin');
   });
 
   it('PUT /api/v1/auth/profile should update profile fields', async () => {
