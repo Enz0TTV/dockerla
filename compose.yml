@@ -3,10 +3,33 @@ services:
     image: postgres:18
     expose:
       - 5432
+    env_file: .env
     volumes:
       # Mount the local folder with your SQL files
-      - ./db/migrations/init-scripts:/docker-entrypoint-initdb.d:ro
+      - ./db/migrations:/docker-entrypoint-initdb.d:ro
       # Persist the actual database data
       - postgres_data:/var/lib/postgresql/18/docker
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+  pgadmin:
+    image: dpage/pgadmin4
+    env_file: .env
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./db/pgadmin/servers.json:/pgadmin4/servers.json
+    healthcheck:
+      test: ["CMD", "wget", "-O", "-", "http://localhost:80/misc/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 75s
+    depends_on:
+      - db
 volumes:
   postgres_data:
