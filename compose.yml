@@ -46,8 +46,6 @@ services:
   caddy:
     image: caddy
     restart: unless-stopped
-    cap_add:
-      - NET_ADMIN
     ports:
       - "80:80"
       - "443:443"
