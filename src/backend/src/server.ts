@@ -6,11 +6,11 @@ import { closeDbPool } from './config/database.js';
 const server = createServer(app);
 
 const startServer = () => {
-  server.listen(3000, () => {
+  server.listen(env.PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running in ${env.NODE_ENV} mode`);
-    console.log(`📡 Listening on http://localhost:3000`);
-    console.log(`🩺 Health check: http://localhost:3000/health`);
-    console.log(`📦 API Base URL: http://localhost:3000${env.API_PREFIX}`);
+    console.log(`📡 Listening on http://0.0.0.0:${env.PORT}`);
+    console.log(`🩺 Health check: http://localhost:${env.PORT}/health`);
+    console.log(`📦 API Base URL: http://localhost:${env.PORT}${env.API_PREFIX}`);
   });
 };
 
