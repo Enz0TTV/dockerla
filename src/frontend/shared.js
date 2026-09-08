@@ -1,10 +1,57 @@
 // ===== SHARED UTILITIES & API CLIENT =====
 
-const API_BASE_URL = window.API_BASE_URL || 'http://localhost:3000/api/v1';
+// Determine backend origin dynamically based on current location
+function resolveBackendOrigin() {
+  if (typeof window !== 'undefined' && window.BACKEND_ORIGIN) {
+    return window.BACKEND_ORIGIN;
+  }
+  const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('myges_api_origin') : null;
+  if (saved) return saved;
+
+  if (typeof window !== 'undefined' && window.location && window.location.hostname) {
+    const { protocol, hostname } = window.location;
+    if (protocol.startsWith('http') && hostname) {
+      // Default to the same host running the page, on backend port 3000
+      return `${protocol}//${hostname}:3000`;
+    }
+  }
+
+  return 'http://localhost:3000';
+}
+
+function resolveApiBaseUrl() {
+  if (typeof window !== 'undefined' && window.API_BASE_URL) {
+    return window.API_BASE_URL;
+  }
+  const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('myges_api_base_url') : null;
+  if (saved) return saved;
+
+  return `${resolveBackendOrigin()}/api/v1`;
+}
+
+// Explicitly assign to window so window.API_BASE_URL is NEVER undefined!
+window.BACKEND_ORIGIN = resolveBackendOrigin();
+window.API_BASE_URL = resolveApiBaseUrl();
+const BACKEND_ORIGIN = window.BACKEND_ORIGIN;
+const API_BASE_URL = window.API_BASE_URL;
+
+// Helper to manually configure backend URL from DevTools or status page
+window.setApiBaseUrl = function(newOrigin) {
+  if (!newOrigin) {
+    localStorage.removeItem('myges_api_origin');
+    localStorage.removeItem('myges_api_base_url');
+  } else {
+    const cleanOrigin = newOrigin.trim().replace(/\/api\/v1\/?$/, '').replace(/\/+$/, '');
+    localStorage.setItem('myges_api_origin', cleanOrigin);
+    localStorage.setItem('myges_api_base_url', `${cleanOrigin}/api/v1`);
+  }
+  window.location.reload();
+};
 
 // Unified API Fetch Client
 async function apiFetch(endpoint, options = {}) {
-  const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+  const base = window.API_BASE_URL || API_BASE_URL;
+  const url = endpoint.startsWith('http') ? endpoint : `${base}${endpoint}`;
   const token = localStorage.getItem('myges_token');
 
   const headers = {

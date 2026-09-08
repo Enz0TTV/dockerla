@@ -205,8 +205,27 @@
             </div>
             <div class="diag-row">
               <span class="diag-label">URL de base de l'API</span>
-              <span class="diag-value" id="diagApiUrl" style="color:var(--accent);">http://localhost:3000/api/v1</span>
+              <span class="diag-value" id="diagApiUrl" style="color:var(--accent); word-break:break-all;">—</span>
             </div>
+            <div class="diag-row">
+              <span class="diag-label">Origine Serveur</span>
+              <span class="diag-value" id="diagBackendOrigin" style="font-size:0.78rem;">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Config Toolbar API Distant -->
+      <div class="card" style="margin-top: 20px; padding: 16px 20px;">
+        <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px;">
+          <div>
+            <div style="font-size:0.88rem; font-weight:600; color:var(--text);">📡 Configuration du Backend distant</div>
+            <div style="font-size:0.75rem; color:var(--text-muted);" id="originHint">Détection automatique selon l'hôte distant connecté</div>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <input type="text" id="apiOriginInput" style="padding:7px 12px; font-size:0.82rem; font-family:monospace; background:rgba(0,0,0,0.3); border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--text); min-width:260px;" placeholder="http://IP_SERVEUR:3000">
+            <button class="btn btn-sm btn-primary" onclick="updateCustomOrigin()">Appliquer</button>
+            <button class="btn btn-sm btn-secondary" onclick="resetOrigin()">Réinitialiser (Auto)</button>
           </div>
         </div>
       </div>
@@ -333,10 +352,46 @@
   <script>
     initSidebar('status');
 
+    function syncConfigInputs() {
+      const origin = window.BACKEND_ORIGIN || 'http://localhost:3000';
+      const apiUrl = window.API_BASE_URL || `${origin}/api/v1`;
+
+      const input = document.getElementById('apiOriginInput');
+      if (input) input.value = origin;
+
+      const diagApiUrl = document.getElementById('diagApiUrl');
+      if (diagApiUrl) diagApiUrl.textContent = apiUrl;
+
+      const diagBackendOrigin = document.getElementById('diagBackendOrigin');
+      if (diagBackendOrigin) diagBackendOrigin.textContent = origin;
+
+      const originHint = document.getElementById('originHint');
+      const isCustom = localStorage.getItem('myges_api_origin');
+      if (originHint) {
+        originHint.textContent = isCustom
+          ? `Personnalisé manuellement (${origin})`
+          : `Détecté automatiquement (${origin})`;
+      }
+    }
+
+    function updateCustomOrigin() {
+      const val = document.getElementById('apiOriginInput').value.trim();
+      if (!val) {
+        showToast('Veuillez entrer une URL valide', 'warning');
+        return;
+      }
+      window.setApiBaseUrl(val);
+    }
+
+    function resetOrigin() {
+      window.setApiBaseUrl('');
+    }
+
     async function testBackendHealth() {
+      const origin = window.BACKEND_ORIGIN || 'http://localhost:3000';
       const start = Date.now();
       try {
-        const res = await fetch('http://localhost:3000/health');
+        const res = await fetch(`${origin}/health`);
         const latency = Date.now() - start;
         const data = await res.json();
 
@@ -407,7 +462,10 @@
     }
 
     async function executeEndpointTest(endpoint, useApiPrefix = true) {
-      const url = useApiPrefix ? `${API_BASE_URL}${endpoint}` : `http://localhost:3000${endpoint}`;
+      const origin = window.BACKEND_ORIGIN || 'http://localhost:3000';
+      const apiBase = window.API_BASE_URL || `${origin}/api/v1`;
+      const url = useApiPrefix ? `${apiBase}${endpoint}` : `${origin}${endpoint}`;
+
       document.getElementById('testUrlLabel').textContent = url;
       document.getElementById('testStatusBadge').className = 'badge warning';
       document.getElementById('testStatusBadge').textContent = 'En cours...';
@@ -430,7 +488,7 @@
         document.getElementById('testStatusBadge').className = 'badge danger';
         document.getElementById('testStatusBadge').textContent = 'Échec réseau';
         document.getElementById('testDuration').textContent = `(${duration} ms)`;
-        document.getElementById('jsonResultBox').textContent = `// Erreur de connexion au serveur:\n${err.message}\n\nAssurez-vous que le backend Express est démarré sur http://localhost:3000 (npm run dev).`;
+        document.getElementById('jsonResultBox').textContent = `// Erreur de connexion au serveur (${url}):\n${err.message}\n\nAssurez-vous que le backend Express est accessible sur ${origin}.`;
         showToast(`Erreur réseau sur ${endpoint}`, 'error');
       }
     }
@@ -443,6 +501,7 @@
     }
 
     async function runAllTests() {
+      syncConfigInputs();
       showToast('Exécution des diagnostics...', 'info');
       await testBackendHealth();
       await testDatabase();
