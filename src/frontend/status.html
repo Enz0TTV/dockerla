@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MyGES-Mieux — Test Backend & Base de données</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .endpoint-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .endpoint-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.2s ease;
+    }
+    .endpoint-card:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+    .endpoint-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .endpoint-path {
+      font-size: 0.85rem;
+      font-family: monospace;
+      color: var(--text);
+      font-weight: 600;
+    }
+    .endpoint-desc {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    .json-box {
+      background: rgba(0, 0, 0, 0.45);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.8rem;
+      color: #7dd3fc;
+      overflow-x: auto;
+      max-height: 320px;
+      margin-top: 12px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .diag-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+    .diag-row:last-child {
+      border-bottom: none;
+    }
+    .diag-label {
+      color: var(--text-muted);
+    }
+    .diag-value {
+      font-weight: 500;
+      color: var(--text);
+      font-family: monospace;
+    }
+    .pill-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .pill {
+      background: var(--primary-dim);
+      color: var(--primary-light);
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-loader" id="pageLoader"><div class="loader-spinner"></div></div>
+  <div class="bg-gradient"></div>
+  <div class="toast" id="toast"></div>
+  <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+
+  <div class="dashboard">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main-content">
+      <div class="main-header">
+        <div>
+          <h1>Test Backend & Base de données</h1>
+          <p class="subtitle">Surveillance en direct de l'API Express et de la base PostgreSQL</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-primary btn-sm" onclick="runAllTests()">🔄 Tout tester</button>
+        </div>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-header">
+            <div class="stat-icon purple">🚀</div>
+            <span class="badge" id="backendBadge">Vérification...</span>
+          </div>
+          <div class="stat-label">Serveur Express</div>
+          <div class="stat-value" id="backendStatus">—</div>
+          <div class="stat-sub" id="backendSub">Port 3000</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-header">
+            <div class="stat-icon blue">🐘</div>
+            <span class="badge" id="dbBadge">Vérification...</span>
+          </div>
+          <div class="stat-label">Base PostgreSQL</div>
+          <div class="stat-value" id="dbStatus">—</div>
+          <div class="stat-sub" id="dbSub">Port 5432</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-header"><div class="stat-icon green">⚡</div></div>
+          <div class="stat-label">Latence DB</div>
+          <div class="stat-value" id="dbLatency">—</div>
+          <div class="stat-sub" id="dbLatencySub">Temps aller-retour</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-header"><div class="stat-icon yellow">⚙️</div></div>
+          <div class="stat-label">Mémoire / Node.js</div>
+          <div class="stat-value" id="nodeVersion">—</div>
+          <div class="stat-sub" id="memoryUsage">—</div>
+        </div>
+      </div>
+
+      <!-- Diagnostics DB & Serveur -->
+      <div class="content-grid" style="grid-template-columns: 1fr 1fr;">
+        <!-- Card 1: Diagnostic PostgreSQL -->
+        <div class="card">
+          <div class="card-header">
+            <h3>🐘 Diagnostic PostgreSQL</h3>
+            <button class="btn btn-sm btn-secondary" onclick="testDatabase()">Tester DB</button>
+          </div>
+          <div style="margin-top: 10px;">
+            <div class="diag-row">
+              <span class="diag-label">Statut connexion</span>
+              <span class="diag-value" id="diagDbConn">—</span>
+            </div>
+            <div class="diag-row">
+              <span class="diag-label">Nom de la base</span>
+              <span class="diag-value" id="diagDbName">—</span>
+            </div>
+            <div class="diag-row">
+              <span class="diag-label">Heure serveur DB</span>
+              <span class="diag-value" id="diagDbTime">—</span>
+            </div>
+            <div class="diag-row">
+              <span class="diag-label">Version PostgreSQL</span>
+              <span class="diag-value" id="diagDbVersion" style="font-size:0.75rem;">—</span>
+            </div>
+            <div class="diag-row">
+              <span class="diag-label">Tables publiques</span>
+              <div class="pill-list" id="diagDbTables">
+                <span class="pill">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Diagnostic Backend API -->
+        <div class="card">
+          <div class="card-header">
+            <h3>🚀 Diagnostic Serveur Express</h3>
+            <button class="btn btn-sm btn-secondary" onclick="testBackendHealth()">Tester Santé</button>
+          </div>
+          <div style="margin-top: 10px;">
+            <div class="diag-row">
+              <span class="diag-label">Statut HTTP</span>
+              <span class="diag-value" id="diagApiStatus">—</span>
+            </div>
+            <div class="diag-row">
+              <span class="diag-label">Environnement</span>
+              <span class="diag-value" id="diagApiEnv">—</span>
+            </div>
+            <div class="diag-row">
+              <span class="diag-label">Temps de fonctionnement</span>
+              <span class="diag-value" id="diagApiUptime">—</span>
+            </div>
+            <div class="diag-row">
+              <span class="diag-label">Date du serveur</span>
+              <span class="diag-value" id="diagApiTime">—</span>
+            </div>
+            <div class="diag-row">
+              <span class="diag-label">URL de base de l'API</span>
+              <span class="diag-value" id="diagApiUrl" style="color:var(--accent);">http://localhost:3000/api/v1</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Testeur de routes interactif -->
+      <div class="card" style="margin-top: 20px;">
+        <div class="card-header">
+          <h3>🧪 Testeur interactif de routes API</h3>
+          <span class="badge info">10 endpoints disponibles</span>
+        </div>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">
+          Cliquez sur une route pour exécuter une requête GET en direct et observer la réponse JSON.
+        </p>
+
+        <div class="endpoint-grid">
+          <div class="endpoint-card">
+            <div class="endpoint-info">
+              <span class="endpoint-path">GET /health</span>
+              <span class="endpoint-desc">Santé du conteneur & ressources</span>
+            </div>
+            <button class="btn btn-sm btn-secondary" onclick="executeEndpointTest('/health', false)">Tester</button>
+          </div>
+
+          <div class="endpoint-card">
+            <div class="endpoint-info">
+              <span class="endpoint-path">GET /db/test</span>
+              <span class="endpoint-desc">Connexion & tables PostgreSQL</span>
+            </div>
+            <button class="btn btn-sm btn-secondary" onclick="executeEndpointTest('/db/test')">Tester</button>
+          </div>
+
+          <div class="endpoint-card">
+            <div class="endpoint-info">
+              <span class="endpoint-path">GET /dashboard</span>
+              <span class="endpoint-desc">Métriques, devoirs & cours</span>
+            </div>
+            <button class="btn btn-sm btn-secondary" onclick="executeEndpointTest('/dashboard')">Tester</button>
+          </div>
+
+          <div class="endpoint-card">
+            <div class="endpoint-info">
+              <span class="endpoint-path">GET /grades</span>
+              <span class="endpoint-desc">Notes, moyennes & coefficients</span>
+            </div>
+            <button class="btn btn-sm btn-secondary" onclick="executeEndpointTest('/grades')">Tester</button>
+          </div>
+
+          <div class="endpoint-card">
+            <div class="endpoint-info">
+              <span class="endpoint-path">GET /absences</span>
+              <span class="endpoint-desc">Assiduité, seuils & retards</span>
+            </div>
+            <button class="btn btn-sm btn-secondary" onclick="executeEndpointTest('/absences')">Tester</button>
+          </div>
+
+          <div class="endpoint-card">
+            <div class="endpoint-info">
+              <span class="endpoint-path">GET /schedule</span>
+              <span class="endpoint-desc">Emploi du temps de la semaine</span>
+            </div>
+            <button class="btn btn-sm btn-secondary" onclick="executeEndpointTest('/schedule')">Tester</button>
+          </div>
+
+          <div class="endpoint-card">
+            <div class="endpoint-info">
+              <span class="endpoint-path">GET /messages</span>
+              <span class="endpoint-desc">Boîte de réception & messages</span>
+            </div>
+            <button class="btn btn-sm btn-secondary" onclick="executeEndpointTest('/messages')">Tester</button>
+          </div>
+
+          <div class="endpoint-card">
+            <div class="endpoint-info">
+              <span class="endpoint-path">GET /documents</span>
+              <span class="endpoint-desc">Documents scolaires & factures</span>
+            </div>
+            <button class="btn btn-sm btn-secondary" onclick="executeEndpointTest('/documents')">Tester</button>
+          </div>
+
+          <div class="endpoint-card">
+            <div class="endpoint-info">
+              <span class="endpoint-path">GET /stages</span>
+              <span class="endpoint-desc">Stage en cours & livrables</span>
+            </div>
+            <button class="btn btn-sm btn-secondary" onclick="executeEndpointTest('/stages')">Tester</button>
+          </div>
+
+          <div class="endpoint-card">
+            <div class="endpoint-info">
+              <span class="endpoint-path">GET /settings</span>
+              <span class="endpoint-desc">Préférences & sessions</span>
+            </div>
+            <button class="btn btn-sm btn-secondary" onclick="executeEndpointTest('/settings')">Tester</button>
+          </div>
+
+          <div class="endpoint-card">
+            <div class="endpoint-info">
+              <span class="endpoint-path">GET /auth/users</span>
+              <span class="endpoint-desc">Liste des comptes (Admin/Étudiants)</span>
+            </div>
+            <button class="btn btn-sm btn-secondary" onclick="executeEndpointTest('/auth/users')">Tester</button>
+          </div>
+        </div>
+
+        <!-- Result Box -->
+        <div style="margin-top: 20px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-size:0.85rem; font-weight:600;">
+              Réponse : <span id="testUrlLabel" style="font-family:monospace; color:var(--primary-light);">Aucun test effectué</span>
+              <span id="testStatusBadge" style="margin-left: 8px;"></span>
+              <span id="testDuration" style="font-size:0.75rem; color:var(--text-muted); margin-left: 8px;"></span>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="copyResult()">📋 Copier JSON</button>
+          </div>
+          <pre class="json-box" id="jsonResultBox">// Cliquez sur 'Tester' sur un endpoint pour inspecter le résultat en temps réel</pre>
+        </div>
+      </div>
+
+      <p class="page-footer">© 2026 MyGES-Mieux — Diagnostic Système v2.1.0</p>
+    </main>
+  </div>
+
+  <script src="shared.js"></script>
+  <script>
+    initSidebar('status');
+
+    async function testBackendHealth() {
+      const start = Date.now();
+      try {
+        const res = await fetch('http://localhost:3000/health');
+        const latency = Date.now() - start;
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          document.getElementById('backendBadge').className = 'badge success';
+          document.getElementById('backendBadge').textContent = 'En ligne';
+          document.getElementById('backendStatus').textContent = 'OK';
+          document.getElementById('backendSub').textContent = `${latency} ms · Uptime: ${data.data.uptimeSeconds}s`;
+
+          document.getElementById('diagApiStatus').textContent = `${res.status} OK`;
+          document.getElementById('diagApiEnv').textContent = data.data.environment;
+          document.getElementById('diagApiUptime').textContent = `${data.data.uptimeSeconds} secondes`;
+          document.getElementById('diagApiTime').textContent = new Date(data.data.timestamp).toLocaleTimeString('fr-FR');
+          document.getElementById('nodeVersion').textContent = data.data.nodeVersion;
+          document.getElementById('memoryUsage').textContent = `RAM : ${data.data.memory.heapUsedMb} Mo / ${data.data.memory.heapTotalMb} Mo`;
+          return true;
+        } else {
+          throw new Error('Réponse invalide');
+        }
+      } catch (err) {
+        document.getElementById('backendBadge').className = 'badge danger';
+        document.getElementById('backendBadge').textContent = 'Hors ligne';
+        document.getElementById('backendStatus').textContent = 'Erreur';
+        document.getElementById('backendSub').textContent = 'Serveur injoignable';
+        document.getElementById('diagApiStatus').textContent = 'Hors ligne';
+        return false;
+      }
+    }
+
+    async function testDatabase() {
+      try {
+        const res = await apiFetch('/db/test');
+        const d = res.data;
+
+        if (res.success && d && d.connected) {
+          document.getElementById('dbBadge').className = 'badge success';
+          document.getElementById('dbBadge').textContent = 'Connectée';
+          document.getElementById('dbStatus').textContent = 'OK';
+          document.getElementById('dbSub').textContent = `Base : ${d.database || 'mieuxges'}`;
+
+          document.getElementById('dbLatency').textContent = `${d.latencyMs} ms`;
+          document.getElementById('dbLatency').style.color = d.latencyMs < 50 ? 'var(--success)' : 'var(--warning)';
+
+          document.getElementById('diagDbConn').innerHTML = '<span style="color:var(--success)">Connecté avec succès ✓</span>';
+          document.getElementById('diagDbName').textContent = d.database || 'mieuxges';
+          document.getElementById('diagDbTime').textContent = d.serverTime ? new Date(d.serverTime).toLocaleString('fr-FR') : '—';
+          document.getElementById('diagDbVersion').textContent = (d.postgresVersion || 'PostgreSQL 18').substring(0, 45) + '...';
+
+          const tablesContainer = document.getElementById('diagDbTables');
+          if (Array.isArray(d.tables) && d.tables.length > 0) {
+            tablesContainer.innerHTML = d.tables.map(t => `<span class="pill">${t}</span>`).join('');
+          } else {
+            tablesContainer.innerHTML = '<span class="pill">Aucune table</span>';
+          }
+          return true;
+        } else {
+          throw new Error(d?.error || 'Échec de connexion DB');
+        }
+      } catch (err) {
+        document.getElementById('dbBadge').className = 'badge danger';
+        document.getElementById('dbBadge').textContent = 'Non connectée';
+        document.getElementById('dbStatus').textContent = 'Inaccessible';
+        document.getElementById('dbSub').textContent = 'Vérifiez PostgreSQL';
+        document.getElementById('dbLatency').textContent = '—';
+        document.getElementById('diagDbConn').innerHTML = '<span style="color:var(--danger)">Échec : ' + (err.message || 'Non connectée') + '</span>';
+        return false;
+      }
+    }
+
+    async function executeEndpointTest(endpoint, useApiPrefix = true) {
+      const url = useApiPrefix ? `${API_BASE_URL}${endpoint}` : `http://localhost:3000${endpoint}`;
+      document.getElementById('testUrlLabel').textContent = url;
+      document.getElementById('testStatusBadge').className = 'badge warning';
+      document.getElementById('testStatusBadge').textContent = 'En cours...';
+      document.getElementById('testDuration').textContent = '';
+
+      const start = Date.now();
+      try {
+        const response = await fetch(url);
+        const duration = Date.now() - start;
+        const json = await response.json().catch(() => ({}));
+
+        document.getElementById('testStatusBadge').className = response.ok ? 'badge success' : 'badge danger';
+        document.getElementById('testStatusBadge').textContent = `${response.status} ${response.statusText || ''}`;
+        document.getElementById('testDuration').textContent = `(${duration} ms)`;
+        document.getElementById('jsonResultBox').textContent = JSON.stringify(json, null, 2);
+
+        showToast(`${endpoint} : ${response.status}`, response.ok ? 'success' : 'warning');
+      } catch (err) {
+        const duration = Date.now() - start;
+        document.getElementById('testStatusBadge').className = 'badge danger';
+        document.getElementById('testStatusBadge').textContent = 'Échec réseau';
+        document.getElementById('testDuration').textContent = `(${duration} ms)`;
+        document.getElementById('jsonResultBox').textContent = `// Erreur de connexion au serveur:\n${err.message}\n\nAssurez-vous que le backend Express est démarré sur http://localhost:3000 (npm run dev).`;
+        showToast(`Erreur réseau sur ${endpoint}`, 'error');
+      }
+    }
+
+    function copyResult() {
+      const content = document.getElementById('jsonResultBox').textContent;
+      navigator.clipboard.writeText(content).then(() => {
+        showToast('JSON copié dans le presse-papiers !', 'success');
+      });
+    }
+
+    async function runAllTests() {
+      showToast('Exécution des diagnostics...', 'info');
+      await testBackendHealth();
+      await testDatabase();
+      showToast('Diagnostics terminés', 'success');
+    }
+
+    // Auto-run tests on page load
+    runAllTests();
+  </script>
+</body>
+</html>

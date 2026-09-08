@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MyGES-Mieux — Tableau de bord</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="page-loader" id="pageLoader"><div class="loader-spinner"></div></div>
+  <div class="bg-gradient"></div>
+  <div class="toast" id="toast"></div>
+  <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+
+  <div class="dashboard">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main-content">
+      <div class="main-header">
+        <div>
+          <h1>Tableau de bord</h1>
+          <p class="subtitle" id="greetingText"></p>
+        </div>
+        <div class="header-actions">
+          <button class="icon-btn" onclick="showToast('DS de Base de Données — Jeudi 10h', 'warning')">🔔<div class="dot"></div></button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-header"><div class="stat-icon purple">📈</div></div>
+          <div class="stat-label">Moyenne générale</div>
+          <div class="stat-value" id="statAvg">13.2</div>
+          <div class="stat-sub up" id="statAvgDiff">↑ +0.4 vs semestre dernier</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-header"><div class="stat-icon red">📋</div></div>
+          <div class="stat-label">Absences</div>
+          <div class="stat-value" id="statAbsences">5</div>
+          <div class="stat-sub" id="statAbsencesSub">dont 3 justifiées</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-header"><div class="stat-icon green">🎯</div></div>
+          <div class="stat-label">Crédits ECTS</div>
+          <div class="stat-value" id="statEcts">42</div>
+          <div class="stat-sub" id="statEctsSub">sur 60 validés</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-header"><div class="stat-icon blue">📚</div></div>
+          <div class="stat-label">Cours restants</div>
+          <div class="stat-value" id="statRemainingCourses">3</div>
+          <div class="stat-sub">aujourd'hui</div>
+        </div>
+      </div>
+
+      <!-- Content -->
+      <div class="content-grid">
+        <div class="card">
+          <div class="card-header">
+            <h3>📅 Emploi du temps — Aujourd'hui</h3>
+            <span class="badge" id="dayBadge"></span>
+          </div>
+          <div class="schedule-list" id="todayScheduleList">
+            <!-- Populated from API -->
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3>📝 Dernières notes</h3>
+            <span class="badge">Récentes</span>
+          </div>
+          <div class="notes-list" id="recentNotesList">
+            <!-- Populated from API -->
+          </div>
+          <div class="absence-section">
+            <h4>Absences</h4>
+            <p class="absence-subtitle" id="absenceSubtitle">Seuil maximum : 15 par semestre</p>
+            <div class="progress-bar"><div class="fill ok" id="absenceBar" style="width:0%"></div></div>
+            <div class="progress-info"><span id="absenceGaugeCount">5 / 15</span><span id="absenceGaugePercent">33%</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Devoirs -->
+      <div class="card" style="margin-top:20px">
+        <div class="card-header">
+          <h3>📚 Travaux à rendre</h3>
+          <span class="badge danger" id="homeworkBadge">1 en retard</span>
+        </div>
+        <div class="homework-list" id="homeworkList">
+          <!-- Populated from API -->
+        </div>
+      </div>
+
+      <p class="page-footer">© 2026 MyGES-Mieux — Portail étudiant v2.1.0</p>
+    </main>
+  </div>
+
+  <script src="shared.js"></script>
+  <script>
+    initSidebar('dashboard');
+    setGreeting('greetingText');
+    const days = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+    document.getElementById('dayBadge').textContent = days[new Date().getDay()];
+
+    async function loadDashboard() {
+      try {
+        const res = await apiFetch('/dashboard');
+        if (!res.success || !res.data) return;
+        const d = res.data;
+
+        // Stats
+        if (d.stats) {
+          document.getElementById('statAvg').textContent = d.stats.generalAverage;
+          document.getElementById('statAvgDiff').textContent = d.stats.averageDiff;
+          document.getElementById('statAbsences').textContent = d.stats.absences;
+          document.getElementById('statAbsencesSub').textContent = `dont ${d.stats.absencesJustified} justifiées`;
+          document.getElementById('statEcts').textContent = d.stats.ectsCredits;
+          document.getElementById('statRemainingCourses').textContent = d.stats.remainingCoursesToday;
+        }
+
+        // Today Schedule
+        const schedEl = document.getElementById('todayScheduleList');
+        if (schedEl && Array.isArray(d.scheduleToday)) {
+          schedEl.innerHTML = d.scheduleToday.map(s => `
+            <div class="schedule-item">
+              <span class="time">${s.time}</span>
+              <div class="subject">
+                <div class="subject-name">${s.subject}</div>
+                <div class="room">${s.room}</div>
+              </div>
+              <div class="status-dot ${s.status}"></div>
+            </div>
+          `).join('');
+        }
+
+        // Recent Notes
+        const notesEl = document.getElementById('recentNotesList');
+        if (notesEl && Array.isArray(d.recentGrades)) {
+          notesEl.innerHTML = d.recentGrades.map(n => `
+            <div class="note-item">
+              <div>
+                <div class="note-subject">${n.subject}</div>
+                <div class="note-date">${n.type} — ${n.date}</div>
+              </div>
+              <span class="note-value ${n.statusClass}">${n.value}</span>
+            </div>
+          `).join('');
+        }
+
+        // Gauge
+        if (d.absenceGauge) {
+          const bar = document.getElementById('absenceBar');
+          if (bar) bar.style.width = `${d.absenceGauge.percentage}%`;
+          document.getElementById('absenceGaugeCount').textContent = `${d.absenceGauge.current} / ${d.absenceGauge.max}`;
+          document.getElementById('absenceGaugePercent').textContent = `${d.absenceGauge.percentage}%`;
+        }
+
+        // Homeworks
+        renderHomeworks(d.homeworks || []);
+      } catch (err) {
+        console.warn('Backend indisponible ou erreur:', err);
+      }
+    }
+
+    function renderHomeworks(list) {
+      const hwEl = document.getElementById('homeworkList');
+      if (!hwEl) return;
+      hwEl.innerHTML = list.map(hw => `
+        <div class="homework-item ${hw.done ? 'done' : ''}" data-id="${hw.id}">
+          <input type="checkbox" ${hw.done ? 'checked' : ''} onchange="toggleHw('${hw.id}')">
+          <span class="hw-title">${hw.title}</span>
+          <span class="hw-due ${hw.dueClass}">${hw.due}</span>
+        </div>
+      `).join('');
+    }
+
+    async function toggleHw(id) {
+      try {
+        const res = await apiFetch(`/dashboard/homeworks/${id}/toggle`, { method: 'PATCH' });
+        if (res.success) {
+          showToast('Devoir mis à jour', 'success');
+          loadDashboard();
+        }
+      } catch (e) {
+        showToast('Erreur lors de la mise à jour', 'error');
+      }
+    }
+
+    loadDashboard();
+  </script>
+</body>
+</html>

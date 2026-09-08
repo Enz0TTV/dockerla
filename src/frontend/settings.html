@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MyGES-Mieux — Paramètres</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="page-loader" id="pageLoader"><div class="loader-spinner"></div></div>
+  <div class="bg-gradient"></div>
+  <div class="toast" id="toast"></div>
+  <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+
+  <div class="dashboard">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main-content">
+      <div class="main-header">
+        <div>
+          <h1>Paramètres</h1>
+          <p class="subtitle">Gérez votre compte et vos préférences</p>
+        </div>
+      </div>
+
+      <div class="settings-layout">
+        <!-- Settings Nav -->
+        <div>
+          <nav class="settings-nav">
+            <a href="#" class="active" onclick="switchSettingsTab(this, 'profile'); return false;">👤 Profil</a>
+            <a href="#" onclick="switchSettingsTab(this, 'notifications'); return false;">🔔 Notifications</a>
+            <a href="#" onclick="switchSettingsTab(this, 'security'); return false;">🔒 Sécurité</a>
+            <a href="#" onclick="switchSettingsTab(this, 'display'); return false;">🎨 Affichage</a>
+          </nav>
+        </div>
+
+        <!-- Settings Content -->
+        <div>
+          <!-- Profile -->
+          <div class="settings-panel" id="panel-profile">
+            <div class="settings-section">
+              <h3>Informations personnelles</h3>
+              <p>Modifiez vos informations de profil</p>
+
+              <div style="display:flex; align-items:center; gap:20px; margin-bottom:28px;">
+                <div class="sidebar-profile" style="padding:0; cursor:default;">
+                  <div class="avatar" id="profileInitials" style="width:64px;height:64px;font-size:1.3rem;border-radius:16px;">EG</div>
+                </div>
+                <div>
+                  <div style="font-weight:600; font-size:1.05rem;" id="profileHeaderName">Enzo G.</div>
+                  <div style="font-size:0.8rem; color:var(--text-muted);" id="profileHeaderRole">B3 Informatique — N° étudiant : 20240142</div>
+                  <button class="btn btn-ghost btn-sm" style="margin-top:6px;" onclick="showToast('Modification de photo non disponible', 'warning')">📷 Changer la photo</button>
+                </div>
+              </div>
+
+              <div class="form-inline">
+                <div class="form-group">
+                  <label>Prénom</label>
+                  <input type="text" id="profileFirstName" value="Enzo">
+                </div>
+                <div class="form-group">
+                  <label>Nom</label>
+                  <input type="text" id="profileLastName" value="G.">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Adresse e-mail</label>
+                <input type="email" id="profileEmail" value="enzo.g@myges.fr" disabled style="opacity:0.6;">
+              </div>
+              <div class="form-inline">
+                <div class="form-group">
+                  <label>Téléphone</label>
+                  <input type="tel" id="profilePhone" value="06 12 34 56 78">
+                </div>
+                <div class="form-group">
+                  <label>Date de naissance</label>
+                  <input type="date" id="profileBirthDate" value="2003-05-15">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Adresse postale</label>
+                <input type="text" id="profileAddress" value="42 rue de la République, 75011 Paris">
+              </div>
+
+              <div style="display:flex; gap:8px; margin-top:8px;">
+                <button class="btn btn-primary" onclick="saveProfile()">Enregistrer</button>
+                <button class="btn btn-secondary" onclick="loadProfile()">Annuler</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Notifications -->
+          <div class="settings-panel" id="panel-notifications" style="display:none;">
+            <div class="settings-section">
+              <h3>Préférences de notifications</h3>
+              <p>Choisissez comment vous souhaitez être notifié</p>
+
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label">Nouvelles notes</div>
+                  <div class="toggle-desc">Recevoir une notification quand une note est publiée</div>
+                </div>
+                <label class="toggle-switch"><input type="checkbox" id="notifGrades" checked><span class="slider"></span></label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label">Modifications d'emploi du temps</div>
+                  <div class="toggle-desc">Être alerté en cas de changement de salle ou d'horaire</div>
+                </div>
+                <label class="toggle-switch"><input type="checkbox" id="notifSchedule" checked><span class="slider"></span></label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label">Rappels de devoirs</div>
+                  <div class="toggle-desc">Notification 24h avant la date de rendu</div>
+                </div>
+                <label class="toggle-switch"><input type="checkbox" id="notifHomework" checked><span class="slider"></span></label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label">Messages</div>
+                  <div class="toggle-desc">Notification à chaque nouveau message reçu</div>
+                </div>
+                <label class="toggle-switch"><input type="checkbox" id="notifMessages"><span class="slider"></span></label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label">Alertes d'absences</div>
+                  <div class="toggle-desc">Notification quand le seuil d'absences approche</div>
+                </div>
+                <label class="toggle-switch"><input type="checkbox" id="notifAbsences" checked><span class="slider"></span></label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label">Newsletter MyGES-Mieux</div>
+                  <div class="toggle-desc">Recevoir les actualités et mises à jour de la plateforme</div>
+                </div>
+                <label class="toggle-switch"><input type="checkbox" id="notifNewsletter"><span class="slider"></span></label>
+              </div>
+
+              <div style="margin-top:20px;">
+                <button class="btn btn-primary" onclick="savePreferences()">Enregistrer</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Security -->
+          <div class="settings-panel" id="panel-security" style="display:none;">
+            <div class="settings-section">
+              <h3>Sécurité du compte</h3>
+              <p>Gérez votre mot de passe et la sécurité de votre compte</p>
+
+              <h4 style="font-size:0.9rem; margin-bottom:16px; margin-top:8px;">Changer le mot de passe</h4>
+              <div class="form-group">
+                <label>Mot de passe actuel</label>
+                <input type="password" id="currentPwd" placeholder="Entrez votre mot de passe actuel">
+              </div>
+              <div class="form-inline">
+                <div class="form-group">
+                  <label>Nouveau mot de passe</label>
+                  <input type="password" id="newPwd" placeholder="Minimum 8 caractères">
+                </div>
+                <div class="form-group">
+                  <label>Confirmer le mot de passe</label>
+                  <input type="password" id="confirmPwd" placeholder="Confirmez le nouveau mot de passe">
+                </div>
+              </div>
+
+              <button class="btn btn-primary" onclick="submitPasswordChange()">Modifier le mot de passe</button>
+
+              <hr class="divider">
+
+              <h4 style="font-size:0.9rem; margin-bottom:16px;">Authentification à deux facteurs</h4>
+              <div class="toggle-row" style="border:none;">
+                <div class="toggle-info">
+                  <div class="toggle-label">Activer la 2FA</div>
+                  <div class="toggle-desc">Sécurisez votre compte avec une vérification en deux étapes</div>
+                </div>
+                <label class="toggle-switch"><input type="checkbox" id="twoFaToggle"><span class="slider"></span></label>
+              </div>
+
+              <hr class="divider">
+
+              <h4 style="font-size:0.9rem; margin-bottom:16px;">Sessions actives</h4>
+              <div style="display:flex; flex-direction:column; gap:12px;" id="sessionsList">
+                <!-- Populated from API -->
+              </div>
+
+              <hr class="divider">
+
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:16px; border-radius:var(--radius-sm); background:var(--bg-card); border:1px solid var(--border); margin-top:16px;">
+                <div>
+                  <div style="font-weight:600; font-size:0.88rem; color:var(--text);">Session actuelle</div>
+                  <div style="font-size:0.75rem; color:var(--text-secondary);">Déconnecter votre compte sur ce navigateur</div>
+                </div>
+                <button type="button" class="btn btn-danger btn-sm" onclick="logoutUser()">🚪 Se déconnecter</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Display -->
+          <div class="settings-panel" id="panel-display" style="display:none;">
+            <div class="settings-section">
+              <h3>Affichage & Accessibilité</h3>
+              <p>Personnalisez l'apparence de votre interface</p>
+
+              <div class="form-group">
+                <label>Thème</label>
+                <select id="themeSelect">
+                  <option value="dark" selected>Sombre (Par défaut)</option>
+                  <option value="light">Clair</option>
+                  <option value="system">Système</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Langue</label>
+                <select>
+                  <option selected>Français</option>
+                  <option>English</option>
+                  <option>Español</option>
+                </select>
+              </div>
+
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label">Animations réduites</div>
+                  <div class="toggle-desc">Réduire les animations pour l'accessibilité</div>
+                </div>
+                <label class="toggle-switch"><input type="checkbox"><span class="slider"></span></label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label">Mode compact</div>
+                  <div class="toggle-desc">Affichage plus dense avec moins d'espacement</div>
+                </div>
+                <label class="toggle-switch"><input type="checkbox"><span class="slider"></span></label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label">Format 24h</div>
+                  <div class="toggle-desc">Utiliser le format horaire 24h au lieu de AM/PM</div>
+                </div>
+                <label class="toggle-switch"><input type="checkbox" checked><span class="slider"></span></label>
+              </div>
+
+              <div style="margin-top:20px;">
+                <button class="btn btn-primary" onclick="showToast('Préférences d\'affichage sauvegardées', 'success')">Enregistrer</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="page-footer">© 2026 MyGES-Mieux — Portail étudiant v2.1.0</p>
+    </main>
+  </div>
+
+  <script src="shared.js"></script>
+  <script>
+    initSidebar('settings');
+
+    function switchSettingsTab(btn, panelId) {
+      document.querySelectorAll('.settings-nav a').forEach(a => a.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.settings-panel').forEach(p => p.style.display = 'none');
+      document.getElementById('panel-' + panelId).style.display = 'block';
+    }
+
+    async function loadProfile() {
+      try {
+        const res = await apiFetch('/auth/me');
+        if (res.success && res.data) {
+          const p = res.data;
+          document.getElementById('profileFirstName').value = p.firstName || '';
+          document.getElementById('profileLastName').value = p.lastName || '';
+          document.getElementById('profileEmail').value = p.email || '';
+          document.getElementById('profilePhone').value = p.phone || '';
+          document.getElementById('profileBirthDate').value = p.birthDate || '';
+          document.getElementById('profileAddress').value = p.address || '';
+          document.getElementById('profileInitials').textContent = p.avatarInitials || 'EG';
+          document.getElementById('profileHeaderName').textContent = `${p.firstName} ${p.lastName}`;
+          document.getElementById('profileHeaderRole').textContent = `${p.role} — N° étudiant : ${p.studentId}`;
+        }
+      } catch (err) {
+        console.warn('Erreur chargement profil:', err);
+      }
+    }
+
+    async function saveProfile() {
+      const payload = {
+        firstName: document.getElementById('profileFirstName').value.trim(),
+        lastName: document.getElementById('profileLastName').value.trim(),
+        phone: document.getElementById('profilePhone').value.trim(),
+        birthDate: document.getElementById('profileBirthDate').value,
+        address: document.getElementById('profileAddress').value.trim(),
+      };
+
+      try {
+        const res = await apiFetch('/auth/profile', {
+          method: 'PUT',
+          body: JSON.stringify(payload),
+        });
+
+        if (res.success) {
+          showToast(res.message || 'Profil mis à jour avec succès', 'success');
+          loadProfile();
+          initSidebar('settings');
+        }
+      } catch (err) {
+        showToast(err.message || 'Erreur lors de la sauvegarde', 'error');
+      }
+    }
+
+    async function loadSettings() {
+      try {
+        const res = await apiFetch('/settings');
+        if (!res.success || !res.data) return;
+        const { preferences, sessions } = res.data;
+
+        if (preferences && preferences.notifications) {
+          const n = preferences.notifications;
+          document.getElementById('notifGrades').checked = !!n.newGrades;
+          document.getElementById('notifSchedule').checked = !!n.scheduleChanges;
+          document.getElementById('notifHomework').checked = !!n.homeworkReminders;
+          document.getElementById('notifMessages').checked = !!n.messages;
+          document.getElementById('notifAbsences').checked = !!n.absenceAlerts;
+          document.getElementById('notifNewsletter').checked = !!n.newsletter;
+        }
+
+        if (preferences && preferences.twoFactorAuth !== undefined) {
+          document.getElementById('twoFaToggle').checked = preferences.twoFactorAuth;
+        }
+
+        if (sessions && Array.isArray(sessions)) {
+          const sessEl = document.getElementById('sessionsList');
+          sessEl.innerHTML = sessions.map(s => `
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:12px; border-radius:var(--radius-sm); background:rgba(255,255,255,0.02);">
+              <div>
+                <div style="font-size:0.85rem; font-weight:600;">${s.device}</div>
+                <div style="font-size:0.72rem; color:var(--text-muted);">${s.location} · Dernière activité : ${s.lastActive}</div>
+              </div>
+              ${s.current ? 
+                `<span class="badge success">Session actuelle</span>` : 
+                `<button class="btn btn-sm btn-danger" onclick="revokeSession('${s.id}')">Révoquer</button>`
+              }
+            </div>
+          `).join('');
+        }
+      } catch (err) {
+        console.warn('Erreur chargement paramètres:', err);
+      }
+    }
+
+    async function savePreferences() {
+      const payload = {
+        notifications: {
+          newGrades: document.getElementById('notifGrades').checked,
+          scheduleChanges: document.getElementById('notifSchedule').checked,
+          homeworkReminders: document.getElementById('notifHomework').checked,
+          messages: document.getElementById('notifMessages').checked,
+          absenceAlerts: document.getElementById('notifAbsences').checked,
+          newsletter: document.getElementById('notifNewsletter').checked,
+        },
+        twoFactorAuth: document.getElementById('twoFaToggle').checked,
+      };
+
+      try {
+        const res = await apiFetch('/settings', {
+          method: 'PUT',
+          body: JSON.stringify(payload),
+        });
+
+        if (res.success) {
+          showToast('Préférences sauvegardées', 'success');
+        }
+      } catch (err) {
+        showToast(err.message || 'Erreur de sauvegarde', 'error');
+      }
+    }
+
+    async function submitPasswordChange() {
+      const currentPassword = document.getElementById('currentPwd').value;
+      const newPassword = document.getElementById('newPwd').value;
+      const confirmPassword = document.getElementById('confirmPwd').value;
+
+      if (!currentPassword || !newPassword) {
+        showToast('Veuillez renseigner tous les champs', 'warning');
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        showToast('Les nouveaux mots de passe ne correspondent pas', 'warning');
+        return;
+      }
+
+      try {
+        const res = await apiFetch('/auth/change-password', {
+          method: 'POST',
+          body: JSON.stringify({ currentPassword, newPassword }),
+        });
+
+        if (res.success) {
+          showToast('Mot de passe modifié avec succès', 'success');
+          document.getElementById('currentPwd').value = '';
+          document.getElementById('newPwd').value = '';
+          document.getElementById('confirmPwd').value = '';
+        }
+      } catch (err) {
+        showToast(err.message || 'Erreur lors de la modification', 'error');
+      }
+    }
+
+    async function revokeSession(id) {
+      try {
+        const res = await apiFetch(`/settings/sessions/${id}`, { method: 'DELETE' });
+        if (res.success) {
+          showToast(res.message || 'Session révoquée', 'success');
+          loadSettings();
+        }
+      } catch (err) {
+        showToast('Erreur lors de la révocation', 'error');
+      }
+    }
+
+    loadProfile();
+    loadSettings();
+  </script>
+</body>
+</html>

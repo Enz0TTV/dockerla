@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MyGES-Mieux — Stages</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="page-loader" id="pageLoader"><div class="loader-spinner"></div></div>
+  <div class="bg-gradient"></div>
+  <div class="toast" id="toast"></div>
+  <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+
+  <div class="dashboard">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main-content">
+      <div class="main-header">
+        <div>
+          <h1>Stages</h1>
+          <p class="subtitle">Gestion de vos stages et alternances</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-primary btn-sm" onclick="declareNewStage()">➕ Déclarer un stage</button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="stat-card">
+          <div class="stat-header"><div class="stat-icon green">✅</div></div>
+          <div class="stat-label">Stage en cours</div>
+          <div class="stat-value" id="statActiveStages">1</div>
+          <div class="stat-sub up">Convention validée</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-header"><div class="stat-icon blue">📄</div></div>
+          <div class="stat-label">Conventions</div>
+          <div class="stat-value" id="statConventions">2</div>
+          <div class="stat-sub">depuis le début du cursus</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-header"><div class="stat-icon purple">⏱️</div></div>
+          <div class="stat-label">Durée totale</div>
+          <div class="stat-value" id="statDuration">8 mois</div>
+          <div class="stat-sub">d'expérience professionnelle</div>
+        </div>
+      </div>
+
+      <!-- Current -->
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header">
+          <h3>🏢 Stage en cours</h3>
+          <span class="badge success">Actif</span>
+        </div>
+        <div class="stage-card" style="margin:0; border:none; padding:0;">
+          <div class="stage-logo">🚀</div>
+          <div class="stage-info">
+            <div class="stage-title" id="currentStageTitle">Développeur Full-Stack — Stage de fin d'études</div>
+            <div class="stage-company" id="currentStageCompany">TechCorp Solutions · Paris 9ème</div>
+            <div class="stage-details">
+              <div class="stage-detail" id="currentStagePeriod">📅 01 mars 2026 → 31 août 2026</div>
+              <div class="stage-detail" id="currentStageDuration">⏱️ 6 mois</div>
+              <div class="stage-detail" id="currentStageSalary">💰 Gratification : 600€/mois</div>
+              <div class="stage-detail" id="currentStageTutor">👤 Tuteur : Jean Dupont</div>
+            </div>
+          </div>
+          <div class="stage-actions">
+            <button class="btn btn-sm btn-primary" onclick="showToast('Convention téléchargée', 'success')">📥 Convention</button>
+            <button class="btn btn-sm btn-secondary" onclick="showToast('Rapport de stage — modèle téléchargé', 'success')">📝 Rapport</button>
+          </div>
+        </div>
+
+        <!-- Progress -->
+        <div style="margin-top:20px;">
+          <div style="display:flex; justify-content:space-between; font-size:0.78rem; color:var(--text-muted); margin-bottom:8px;">
+            <span>Progression du stage</span>
+            <span id="progressText">83% complété</span>
+          </div>
+          <div class="progress-bar" style="height:8px;">
+            <div class="fill success" id="stageProgress" style="width:0%;"></div>
+          </div>
+          <div class="progress-info">
+            <span id="progressStart">Début : 01 mars</span>
+            <span style="color:var(--primary-light); font-weight:600;" id="progressEnd">Fin : 31 août</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Deliverables -->
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header">
+          <h3>📋 Livrables à rendre</h3>
+        </div>
+        <div class="homework-list" id="deliverablesList">
+          <!-- Populated from API -->
+        </div>
+      </div>
+
+      <!-- Past -->
+      <div class="card">
+        <div class="card-header">
+          <h3>📁 Stages précédents</h3>
+        </div>
+        <div class="stage-card">
+          <div class="stage-logo" style="background:var(--accent-dim);">💻</div>
+          <div class="stage-info">
+            <div class="stage-title">Assistant Développeur Web</div>
+            <div class="stage-company">WebAgency Pro · Lyon</div>
+            <div class="stage-details">
+              <div class="stage-detail">📅 Juin → Août 2025</div>
+              <div class="stage-detail">⏱️ 2 mois</div>
+              <div class="stage-detail">✅ Terminé — Note : 16/20</div>
+            </div>
+          </div>
+          <div class="stage-actions">
+            <button class="btn btn-sm btn-secondary" onclick="showToast('Convention téléchargée', 'success')">📥 Convention</button>
+          </div>
+        </div>
+      </div>
+
+      <p class="page-footer">© 2026 MyGES-Mieux — Portail étudiant v2.1.0</p>
+    </main>
+  </div>
+
+  <script src="shared.js"></script>
+  <script>
+    initSidebar('stages');
+
+    async function loadStages() {
+      try {
+        const res = await apiFetch('/stages');
+        if (!res.success || !res.data) return;
+        const d = res.data;
+
+        if (d.stats) {
+          document.getElementById('statActiveStages').textContent = d.stats.activeStages;
+          document.getElementById('statConventions').textContent = d.stats.totalConventions;
+          document.getElementById('statDuration').textContent = d.stats.totalDuration;
+        }
+
+        if (d.currentStage) {
+          const s = d.currentStage;
+          document.getElementById('currentStageTitle').textContent = s.title;
+          document.getElementById('currentStageCompany').textContent = s.company;
+          document.getElementById('currentStagePeriod').textContent = `📅 ${s.period}`;
+          document.getElementById('currentStageDuration').textContent = `⏱️ ${s.duration}`;
+          document.getElementById('currentStageSalary').textContent = `💰 Gratification : ${s.salary}`;
+          document.getElementById('currentStageTutor').textContent = `👤 Tuteur : ${s.tutor}`;
+          document.getElementById('stageProgress').style.width = `${s.progressPercentage}%`;
+          document.getElementById('progressText').textContent = `${s.progressPercentage}% complété`;
+          document.getElementById('progressStart').textContent = `Début : ${s.startDate}`;
+          document.getElementById('progressEnd').textContent = `Fin : ${s.endDate}`;
+        }
+
+        if (Array.isArray(d.deliverables)) {
+          const delivEl = document.getElementById('deliverablesList');
+          delivEl.innerHTML = d.deliverables.map(item => `
+            <div class="homework-item ${item.completed ? 'done' : ''}">
+              <input type="checkbox" ${item.completed ? 'checked' : ''} disabled>
+              <span class="hw-title">${item.title}</span>
+              <span class="hw-due ${item.statusClass}">${item.dueDate}</span>
+            </div>
+          `).join('');
+        }
+      } catch (err) {
+        console.warn('Erreur chargement stages:', err);
+      }
+    }
+
+    async function declareNewStage() {
+      const title = prompt("Intitulé du poste :", "Développeur Back-End Node.js");
+      if (!title) return;
+      const company = prompt("Entreprise d'accueil :", "SaaS Solutions Paris");
+      if (!company) return;
+      const startDate = prompt("Date de début :", "01/10/2026");
+      if (!startDate) return;
+      const endDate = prompt("Date de fin :", "31/03/2027");
+      if (!endDate) return;
+
+      try {
+        const res = await apiFetch('/stages', {
+          method: 'POST',
+          body: JSON.stringify({ title, company, startDate, endDate }),
+        });
+
+        if (res.success) {
+          showToast(res.message || 'Convention déclarée', 'success');
+        }
+      } catch (err) {
+        showToast(err.message || 'Erreur déclaration', 'error');
+      }
+    }
+
+    loadStages();
+  </script>
+</body>
+</html>

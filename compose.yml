@@ -31,5 +31,20 @@ services:
       start_period: 75s
     depends_on:
       - db
+  backend:
+    build:
+      context: ./src/backend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    env_file: .env
+    environment:
+      - NODE_ENV=production
+      - CORS_ORIGIN=*
+      - API_PREFIX=/api/v1
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    depends_on:
+      db:
+        condition: service_healthy
 volumes:
   postgres_data:

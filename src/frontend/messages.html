@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MyGES-Mieux — Messages</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="page-loader" id="pageLoader"><div class="loader-spinner"></div></div>
+  <div class="bg-gradient"></div>
+  <div class="toast" id="toast"></div>
+  <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+
+  <div class="dashboard">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main-content">
+      <div class="main-header">
+        <div>
+          <h1>Messages</h1>
+          <p class="subtitle" id="unreadSubtitle">Chargement...</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-primary btn-sm" onclick="composeMessage()">✏️ Nouveau message</button>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab active" onclick="switchFolder(this, 'inbox')">Boîte de réception</button>
+        <button class="tab" onclick="switchFolder(this, 'sent')">Envoyés</button>
+        <button class="tab" onclick="switchFolder(this, 'archived')">Archives</button>
+      </div>
+
+      <div class="card" style="padding:0;">
+        <div class="message-layout" style="padding:0;">
+          <!-- Message List -->
+          <div style="padding:16px; border-right:1px solid var(--border);">
+            <div class="message-list" id="messageListContainer">
+              <!-- Populated from API -->
+            </div>
+          </div>
+
+          <!-- Message Detail -->
+          <div class="message-detail" id="messageDetail" style="padding:24px;">
+            <div class="msg-header">
+              <h3 id="detailSubject">Sélectionnez un message</h3>
+              <div class="msg-meta">
+                <span id="detailSender"></span>
+                <span id="detailDate"></span>
+              </div>
+            </div>
+            <div class="msg-body" id="detailBody">
+              <p>Sélectionnez un message dans la liste à gauche pour afficher son contenu.</p>
+            </div>
+            <div style="margin-top:24px; display:flex; gap:8px;" id="messageActionButtons">
+              <button class="btn btn-primary btn-sm" onclick="showToast('Répondre — disponible', 'success')">↩️ Répondre</button>
+              <button class="btn btn-secondary btn-sm" onclick="showToast('Transféré', 'success')">↗️ Transférer</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="page-footer">© 2026 MyGES-Mieux — Portail étudiant v2.1.0</p>
+    </main>
+  </div>
+
+  <script src="shared.js"></script>
+  <script>
+    initSidebar('messages');
+    let currentFolder = 'inbox';
+    let currentMessages = [];
+    let selectedMessageId = null;
+
+    async function loadMessages(folder = 'inbox') {
+      try {
+        const res = await apiFetch(`/messages?folder=${folder}`);
+        if (!res.success || !res.data) return;
+        currentFolder = folder;
+        currentMessages = res.data.messages || [];
+
+        const unreadCount = res.data.unreadCount || 0;
+        document.getElementById('unreadSubtitle').textContent = `${unreadCount} message(s) non lu(s)`;
+
+        const container = document.getElementById('messageListContainer');
+        if (currentMessages.length === 0) {
+          container.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:0.85rem;">Aucun message dans ce dossier</div>`;
+          document.getElementById('detailSubject').textContent = 'Aucun message';
+          document.getElementById('detailSender').textContent = '';
+          document.getElementById('detailDate').textContent = '';
+          document.getElementById('detailBody').innerHTML = '';
+          return;
+        }
+
+        container.innerHTML = currentMessages.map((m) => `
+          <div class="message-item ${m.id === selectedMessageId ? 'active' : ''} ${m.unread ? 'unread' : ''}" onclick="selectMessage('${m.id}')" data-id="${m.id}">
+            <div class="msg-avatar">${m.avatar}</div>
+            <div class="msg-content">
+              <div class="msg-sender">${m.sender}</div>
+              <div class="msg-preview">${m.preview}</div>
+            </div>
+            <span class="msg-time">${m.timeLabel}</span>
+          </div>
+        `).join('');
+
+        if (currentMessages.length > 0 && !selectedMessageId) {
+          selectMessage(currentMessages[0].id);
+        }
+      } catch (err) {
+        console.warn('Erreur chargement messages:', err);
+      }
+    }
+
+    async function selectMessage(id) {
+      selectedMessageId = id;
+      try {
+        const res = await apiFetch(`/messages/${id}`);
+        if (res.success && res.data) {
+          const msg = res.data;
+          document.getElementById('detailSubject').textContent = msg.subject;
+          document.getElementById('detailSender').innerHTML = `De : <strong>${msg.sender}</strong>`;
+          document.getElementById('detailDate').textContent = msg.date;
+          document.getElementById('detailBody').innerHTML = msg.content
+            .split('\n\n')
+            .map(para => `<p>${para.replace(/\n/g, '<br>')}</p>`)
+            .join('');
+
+          // Update active item in list
+          document.querySelectorAll('.message-item').forEach(el => {
+            if (el.getAttribute('data-id') === id) {
+              el.classList.add('active');
+              el.classList.remove('unread');
+            } else {
+              el.classList.remove('active');
+            }
+          });
+        }
+      } catch (err) {
+        showToast('Erreur chargement message', 'error');
+      }
+    }
+
+    function switchFolder(btn, folder) {
+      document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      selectedMessageId = null;
+      loadMessages(folder);
+    }
+
+    async function composeMessage() {
+      const recipient = prompt("Destinataire (ex: Scolarité, Administration, M. Lefèvre) :", "Scolarité");
+      if (!recipient) return;
+      const subject = prompt("Objet du message :", "Question relative au cours");
+      if (!subject) return;
+      const content = prompt("Votre message :", "Bonjour, je souhaiterais obtenir des précisions sur...");
+      if (!content) return;
+
+      try {
+        const res = await apiFetch('/messages', {
+          method: 'POST',
+          body: JSON.stringify({ recipient, subject, content }),
+        });
+
+        if (res.success) {
+          showToast(res.message || 'Message envoyé avec succès', 'success');
+          loadMessages(currentFolder);
+        }
+      } catch (err) {
+        showToast(err.message || 'Erreur lors de l\'envoi', 'error');
+      }
+    }
+
+    loadMessages('inbox');
+  </script>
+</body>
+</html>

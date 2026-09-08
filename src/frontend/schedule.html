@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MyGES-Mieux — Emploi du temps</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="page-loader" id="pageLoader"><div class="loader-spinner"></div></div>
+  <div class="bg-gradient"></div>
+  <div class="toast" id="toast"></div>
+  <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+
+  <div class="dashboard">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main-content">
+      <div class="main-header">
+        <div>
+          <h1>Emploi du temps</h1>
+          <p class="subtitle" id="weekSubtitle">Semaine du 7 au 11 septembre 2026</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-secondary btn-sm" onclick="showToast('Export iCal généré avec succès', 'success')">📥 Exporter</button>
+        </div>
+      </div>
+
+      <!-- Week navigation -->
+      <div class="week-nav">
+        <button class="btn btn-ghost" onclick="changeWeek(-1)">← Précédente</button>
+        <span class="week-label" id="weekNavLabel">7 – 11 Septembre 2026</span>
+        <button class="btn btn-ghost" onclick="changeWeek(1)">Suivante →</button>
+      </div>
+
+      <!-- Week Grid Container -->
+      <div class="card" style="padding:0; overflow:hidden;">
+        <div class="week-grid" id="weekGridContainer">
+          <!-- Populated from API -->
+        </div>
+      </div>
+
+      <p class="page-footer">© 2026 MyGES-Mieux — Portail étudiant v2.1.0</p>
+    </main>
+  </div>
+
+  <script src="shared.js"></script>
+  <script>
+    initSidebar('schedule');
+    let currentWeekOffset = 0;
+
+    async function loadSchedule(offset = 0) {
+      try {
+        const res = await apiFetch(`/schedule?offset=${offset}`);
+        if (!res.success || !res.data) return;
+        const { weekLabel, days, events } = res.data;
+
+        document.getElementById('weekSubtitle').textContent = `Semaine du ${weekLabel}`;
+        document.getElementById('weekNavLabel').textContent = weekLabel;
+
+        const timeSlots = ['08:00', '10:00', '12:00', '14:00', '16:00'];
+        let gridHtml = `<div class="day-header" style="border-left:none;"></div>`;
+
+        // Headers
+        days.forEach(d => {
+          gridHtml += `<div class="day-header ${d.isToday ? 'today' : ''}">${d.name}</div>`;
+        });
+
+        // Rows for each time slot
+        timeSlots.forEach(slot => {
+          gridHtml += `<div class="time-label">${slot}</div>`;
+
+          if (slot === '12:00') {
+            // Lunch break
+            for (let day = 1; day <= 5; day++) {
+              gridHtml += `<div class="cell" style="opacity:0.4"><div class="event" style="background:rgba(255,255,255,0.03);color:var(--text-muted);border:none;text-align:center;font-size:0.7rem;">Pause déjeuner</div></div>`;
+            }
+          } else {
+            for (let day = 1; day <= 5; day++) {
+              const event = events.find(e => e.dayIndex === day && e.timeSlot === slot);
+              if (event) {
+                gridHtml += `
+                  <div class="cell">
+                    <div class="event ${event.category}">
+                      <div class="event-title">${event.title}</div>
+                      <div class="event-room">${event.room}</div>
+                    </div>
+                  </div>
+                `;
+              } else {
+                gridHtml += `<div class="cell"></div>`;
+              }
+            }
+          }
+        });
+
+        document.getElementById('weekGridContainer').innerHTML = gridHtml;
+      } catch (err) {
+        console.warn('Erreur chargement emploi du temps:', err);
+      }
+    }
+
+    function changeWeek(diff) {
+      currentWeekOffset += diff;
+      loadSchedule(currentWeekOffset);
+      showToast(diff > 0 ? 'Semaine suivante' : 'Semaine précédente', 'success');
+    }
+
+    loadSchedule(0);
+  </script>
+</body>
+</html>

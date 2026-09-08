@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MyGES-Mieux — Notes & Résultats</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="page-loader" id="pageLoader"><div class="loader-spinner"></div></div>
+  <div class="bg-gradient"></div>
+  <div class="toast" id="toast"></div>
+  <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+
+  <div class="dashboard">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main-content">
+      <div class="main-header">
+        <div>
+          <h1>Notes & Résultats</h1>
+          <p class="subtitle">Année 2025-2026 — Semestre 2</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-secondary btn-sm" onclick="showToast('Relevé de notes téléchargé', 'success')">📥 Exporter PDF</button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-header"><div class="stat-icon purple">📈</div></div>
+          <div class="stat-label">Moyenne générale</div>
+          <div class="stat-value" id="statGeneralAvg">13.2</div>
+          <div class="stat-sub up" id="statAvgDiff">↑ +0.4 pts</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-header"><div class="stat-icon green">🏆</div></div>
+          <div class="stat-label">Meilleure note</div>
+          <div class="stat-value" id="statBestGrade">18</div>
+          <div class="stat-sub" id="statBestSubject">Développement Web</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-header"><div class="stat-icon red">📉</div></div>
+          <div class="stat-label">Note la plus basse</div>
+          <div class="stat-value" id="statLowestGrade">7</div>
+          <div class="stat-sub" id="statLowestSubject">Droit du Numérique</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-header"><div class="stat-icon blue">📝</div></div>
+          <div class="stat-label">Évaluations</div>
+          <div class="stat-value" id="statEvalCount">14</div>
+          <div class="stat-sub">ce semestre</div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab(this, 'all')">Toutes les notes</button>
+        <button class="tab" onclick="switchTab(this, 'ds')">DS & Partiels</button>
+        <button class="tab" onclick="switchTab(this, 'tp')">TP & Projets</button>
+      </div>
+
+      <!-- Notes table -->
+      <div class="card">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Matière</th>
+                <th>Type</th>
+                <th>Date</th>
+                <th>Note</th>
+                <th>Coeff.</th>
+                <th>Moyenne classe</th>
+              </tr>
+            </thead>
+            <tbody id="notesTable">
+              <!-- Populated from API -->
+            </tbody>
+          </table>
+        </div>
+        <div class="table-footer">
+          <span id="notesFooterCount">9 évaluations affichées</span>
+          <span>Moyenne pondérée : <strong style="color:var(--text)" id="notesFooterAvg">13.2 / 20</strong></span>
+        </div>
+      </div>
+
+      <!-- Averages by subject -->
+      <div class="card" style="margin-top:20px">
+        <div class="card-header">
+          <h3>📊 Moyennes par matière</h3>
+        </div>
+        <div class="notes-list" id="subjectAveragesList">
+          <!-- Populated from API -->
+        </div>
+      </div>
+
+      <p class="page-footer">© 2026 MyGES-Mieux — Portail étudiant v2.1.0</p>
+    </main>
+  </div>
+
+  <script src="shared.js"></script>
+  <script>
+    initSidebar('grades');
+    let currentFilter = 'all';
+
+    async function loadGrades(filter = 'all') {
+      try {
+        const query = filter !== 'all' ? `?filter=${filter}` : '';
+        const res = await apiFetch(`/grades${query}`);
+        if (!res.success || !res.data) return;
+        const d = res.data;
+
+        // Stats
+        if (d.stats) {
+          document.getElementById('statGeneralAvg').textContent = d.stats.generalAverage;
+          document.getElementById('statAvgDiff').textContent = d.stats.generalAverageDiff;
+          document.getElementById('statBestGrade').textContent = d.stats.bestGrade.value;
+          document.getElementById('statBestSubject').textContent = d.stats.bestGrade.subject;
+          document.getElementById('statLowestGrade').textContent = d.stats.lowestGrade.value;
+          document.getElementById('statLowestSubject').textContent = d.stats.lowestGrade.subject;
+          document.getElementById('statEvalCount').textContent = d.stats.evaluationsCount;
+        }
+
+        // Table
+        const tbody = document.getElementById('notesTable');
+        if (tbody && Array.isArray(d.grades)) {
+          tbody.innerHTML = d.grades.map(g => {
+            const noteClass = g.value >= 14 ? 'good' : (g.value >= 10 ? 'ok' : 'bad');
+            return `
+              <tr>
+                <td style="font-weight:600">${g.subject}</td>
+                <td><span class="badge ${g.typeBadgeClass}">${g.type}</span></td>
+                <td>${g.date}</td>
+                <td><span class="note-value ${noteClass}">${g.value}</span></td>
+                <td>${g.coeff}</td>
+                <td>${g.classAverage}</td>
+              </tr>
+            `;
+          }).join('');
+        }
+
+        document.getElementById('notesFooterCount').textContent = `${d.totalShown} évaluations affichées`;
+        document.getElementById('notesFooterAvg').textContent = `${d.weightedAverage} / 20`;
+
+        // Subject averages
+        const subAvgEl = document.getElementById('subjectAveragesList');
+        if (subAvgEl && Array.isArray(d.subjectAverages)) {
+          subAvgEl.innerHTML = d.subjectAverages.map(s => `
+            <div class="note-item">
+              <div>
+                <div class="note-subject">${s.subject}</div>
+                <div class="note-date">Coeff. ${s.coeff}</div>
+              </div>
+              <span class="note-value ${s.statusClass}">${s.average.toFixed(1)}</span>
+            </div>
+          `).join('');
+        }
+      } catch (err) {
+        console.warn('Erreur lors du chargement des notes:', err);
+      }
+    }
+
+    function switchTab(btn, filter) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = filter;
+      loadGrades(filter);
+      showToast(`Filtre : ${btn.textContent}`, 'success');
+    }
+
+    loadGrades('all');
+  </script>
+</body>
+</html>

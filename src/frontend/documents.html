@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MyGES-Mieux — Documents</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="page-loader" id="pageLoader"><div class="loader-spinner"></div></div>
+  <div class="bg-gradient"></div>
+  <div class="toast" id="toast"></div>
+  <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+
+  <div class="dashboard">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main-content">
+      <div class="main-header">
+        <div>
+          <h1>Documents</h1>
+          <p class="subtitle">Vos documents administratifs et pédagogiques</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-primary btn-sm" onclick="requestNewDocument()">➕ Demander un document</button>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab(this, 'all')">Tous</button>
+        <button class="tab" onclick="switchTab(this, 'administrative')">Administratif</button>
+        <button class="tab" onclick="switchTab(this, 'pedagogical')">Pédagogique</button>
+        <button class="tab" onclick="switchTab(this, 'invoices')">Factures</button>
+      </div>
+
+      <!-- Documents grid -->
+      <div class="doc-grid" id="documentsGridContainer">
+        <!-- Populated from API -->
+      </div>
+
+      <p class="page-footer">© 2026 MyGES-Mieux — Portail étudiant v2.1.0</p>
+    </main>
+  </div>
+
+  <script src="shared.js"></script>
+  <script>
+    initSidebar('documents');
+    let currentCategory = 'all';
+
+    async function loadDocuments(category = 'all') {
+      try {
+        const query = category !== 'all' ? `?category=${category}` : '';
+        const res = await apiFetch(`/documents${query}`);
+        if (!res.success || !res.data) return;
+        const docs = res.data.documents || [];
+
+        const container = document.getElementById('documentsGridContainer');
+        container.innerHTML = docs.map(d => `
+          <div class="doc-card">
+            <div class="doc-icon ${d.iconType}">${d.iconEmoji}</div>
+            <div class="doc-title">${d.title}</div>
+            <div class="doc-meta">${d.fileFormat} · ${d.size} · ${d.date}</div>
+            <div class="doc-actions">
+              <button class="btn btn-sm btn-primary" onclick="showToast('Téléchargement : ${d.title}', 'success')">📥 Télécharger</button>
+              ${d.hasPreview ? `<button class="btn btn-sm btn-secondary" onclick="showToast('Aperçu ouvert', 'info')">👁️ Aperçu</button>` : ''}
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.warn('Erreur chargement documents:', err);
+      }
+    }
+
+    async function requestNewDocument() {
+      const documentType = prompt("Type de document souhaité (ex: Certificat d'assiduité, Relevé officiel) :", "Certificat d'assiduité");
+      if (!documentType) return;
+      const note = prompt("Précisions éventuelles pour la scolarité :", "Pour dossier d'alternance");
+
+      try {
+        const res = await apiFetch('/documents/request', {
+          method: 'POST',
+          body: JSON.stringify({ documentType, note }),
+        });
+
+        if (res.success) {
+          showToast(res.message || 'Demande transmise avec succès', 'success');
+        }
+      } catch (err) {
+        showToast(err.message || 'Erreur lors de la demande', 'error');
+      }
+    }
+
+    function switchTab(btn, category) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      currentCategory = category;
+      loadDocuments(category);
+      showToast(`Filtre : ${btn.textContent}`, 'success');
+    }
+
+    loadDocuments('all');
+  </script>
+</body>
+</html>

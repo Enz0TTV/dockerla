@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MyGES-Mieux — Absences</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="page-loader" id="pageLoader"><div class="loader-spinner"></div></div>
+  <div class="bg-gradient"></div>
+  <div class="toast" id="toast"></div>
+  <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+
+  <div class="dashboard">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main-content">
+      <div class="main-header">
+        <div>
+          <h1>Absences & Retards</h1>
+          <p class="subtitle">Suivi de votre assiduité — Semestre 2</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-primary btn-sm" onclick="justifyPrompt('1')">📤 Justifier une absence</button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-header"><div class="stat-icon red">📋</div></div>
+          <div class="stat-label">Absences totales</div>
+          <div class="stat-value" id="statTotalAbs">5</div>
+          <div class="stat-sub">ce semestre</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-header"><div class="stat-icon green">✅</div></div>
+          <div class="stat-label">Justifiées</div>
+          <div class="stat-value" id="statJustifiedAbs">3</div>
+          <div class="stat-sub up">Justificatifs validés</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-header"><div class="stat-icon yellow">⚠️</div></div>
+          <div class="stat-label">Non justifiées</div>
+          <div class="stat-value" id="statUnjustifiedAbs">2</div>
+          <div class="stat-sub down">À régulariser</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-header"><div class="stat-icon blue">⏰</div></div>
+          <div class="stat-label">Retards</div>
+          <div class="stat-value" id="statLateCount">3</div>
+          <div class="stat-sub">ce semestre</div>
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header"><h3>📊 Jauge d'absences</h3></div>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:16px;">Seuil d'alerte : 10 absences · Seuil d'exclusion : 15 absences</p>
+        <div class="progress-bar" style="height:10px; border-radius:6px; margin-bottom:12px;">
+          <div class="fill ok" id="absBar" style="width:0%; height:100%; border-radius:6px;"></div>
+        </div>
+        <div class="progress-info" style="font-size:0.8rem;">
+          <span id="absGaugeCount">5 absences</span>
+          <span style="color:var(--success)" id="absGaugeStatus">Situation normale</span>
+          <span>Seuil : 15</span>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab(this, 'all')">Toutes</button>
+        <button class="tab" onclick="switchTab(this, 'justified')">Justifiées</button>
+        <button class="tab" onclick="switchTab(this, 'unjustified')">Non justifiées</button>
+        <button class="tab" onclick="switchTab(this, 'late')">Retards</button>
+      </div>
+
+      <!-- Table -->
+      <div class="card">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Horaire</th>
+                <th>Matière</th>
+                <th>Type</th>
+                <th>Statut</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="absencesTableBody">
+              <!-- Populated from API -->
+            </tbody>
+          </table>
+        </div>
+        <div class="table-footer">
+          <span id="absFooterTotal">8 entrées</span>
+          <span id="absFooterSub">5 absences · 3 retards</span>
+        </div>
+      </div>
+
+      <p class="page-footer">© 2026 MyGES-Mieux — Portail étudiant v2.1.0</p>
+    </main>
+  </div>
+
+  <script src="shared.js"></script>
+  <script>
+    initSidebar('absences');
+    let currentFilter = 'all';
+
+    async function loadAbsences(filter = 'all') {
+      try {
+        const query = filter !== 'all' ? `?filter=${filter}` : '';
+        const res = await apiFetch(`/absences${query}`);
+        if (!res.success || !res.data) return;
+        const d = res.data;
+
+        // Stats
+        if (d.stats) {
+          document.getElementById('statTotalAbs').textContent = d.stats.totalAbsences;
+          document.getElementById('statJustifiedAbs').textContent = d.stats.justified;
+          document.getElementById('statUnjustifiedAbs').textContent = d.stats.unjustified;
+          document.getElementById('statLateCount').textContent = d.stats.lates;
+          document.getElementById('absFooterSub').textContent = `${d.stats.totalAbsences} absences · ${d.stats.lates} retards`;
+        }
+
+        // Gauge
+        if (d.gauge) {
+          document.getElementById('absBar').style.width = `${d.gauge.percentage}%`;
+          document.getElementById('absGaugeCount').textContent = `${d.gauge.current} absences`;
+          document.getElementById('absGaugeStatus').textContent = d.gauge.statusLabel;
+        }
+
+        // Table
+        const tbody = document.getElementById('absencesTableBody');
+        if (tbody && Array.isArray(d.absences)) {
+          tbody.innerHTML = d.absences.map(a => `
+            <tr>
+              <td style="font-weight:600;">${a.date}</td>
+              <td>${a.time}</td>
+              <td>${a.subject}</td>
+              <td>${a.type}</td>
+              <td><span class="badge ${a.statusBadgeClass}">${a.statusBadge}</span></td>
+              <td>
+                ${a.canJustify ? 
+                  `<button class="btn btn-sm btn-secondary" onclick="justifyPrompt('${a.id}')">Justifier</button>` : 
+                  `<span style="font-size:0.75rem;color:var(--text-muted)">${a.justification || '—'}</span>`
+                }
+              </td>
+            </tr>
+          `).join('');
+          document.getElementById('absFooterTotal').textContent = `${d.absences.length} entrées`;
+        }
+      } catch (err) {
+        console.warn('Erreur chargement absences:', err);
+      }
+    }
+
+    async function justifyPrompt(id) {
+      const reason = prompt("Motif du justificatif (ex: Certificat médical, Convocation) :", "Certificat médical");
+      if (!reason) return;
+
+      try {
+        const res = await apiFetch(`/absences/${id}/justify`, {
+          method: 'POST',
+          body: JSON.stringify({ reason }),
+        });
+
+        if (res.success) {
+          showToast(res.message || 'Absence justifiée avec succès', 'success');
+          loadAbsences(currentFilter);
+        }
+      } catch (err) {
+        showToast(err.message || 'Erreur lors de la justification', 'error');
+      }
+    }
+
+    function switchTab(btn, filter) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = filter;
+      loadAbsences(filter);
+      showToast(`Filtre : ${btn.textContent}`, 'success');
+    }
+
+    loadAbsences('all');
+  </script>
+</body>
+</html>
