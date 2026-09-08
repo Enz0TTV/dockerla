@@ -36,7 +36,7 @@ export const createApp = (): Express => {
   // Root Info Endpoint
   app.get('/', (_req, res) => {
     res.json({
-      name: 'MyGES-Mieux API',
+      name: 'MieuxGES API',
       version: '1.0.0',
       apiPrefix: env.API_PREFIX,
       health: '/health',

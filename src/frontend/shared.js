@@ -48,6 +48,31 @@ window.setApiBaseUrl = function(newOrigin) {
   window.location.reload();
 };
 
+// ===== AUTH & ROUTE GUARD =====
+function checkAuth() {
+  if (typeof window === 'undefined') return true;
+
+  const path = (window.location.pathname || '').toLowerCase();
+  const isPublicPage = path.endsWith('/index.html') || 
+                       path.endsWith('index.html') || 
+                       path.endsWith('/index') || 
+                       path.endsWith('/') || 
+                       path === '';
+
+  const token = localStorage.getItem('myges_token');
+
+  if (!isPublicPage && !token) {
+    // Redirection immédiate si non connecté
+    window.location.replace('index.html?auth=required');
+    return false;
+  }
+
+  return true;
+}
+
+// Vérifier l'authentification dès le chargement du script
+checkAuth();
+
 // Unified API Fetch Client
 async function apiFetch(endpoint, options = {}) {
   const base = window.API_BASE_URL || API_BASE_URL;
@@ -69,6 +94,15 @@ async function apiFetch(endpoint, options = {}) {
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
+      if (response.status === 401) {
+        localStorage.removeItem('myges_token');
+        localStorage.removeItem('myges_user');
+        const path = (window.location.pathname || '').toLowerCase();
+        const isPublicPage = path.endsWith('/index.html') || path.endsWith('index.html') || path.endsWith('/') || path === '';
+        if (!isPublicPage) {
+          window.location.replace('index.html?auth=expired');
+        }
+      }
       const errorMsg = data?.error?.message || data?.message || `Erreur ${response.status}`;
       throw new Error(errorMsg);
     }
@@ -153,7 +187,7 @@ function buildSidebar(activePage, profile) {
   let html = `
     <a href="dashboard.html" class="sidebar-logo">
       <div class="logo-icon">🎓</div>
-      <h2>MyGES-Mieux</h2>
+      <h2>MieuxGES</h2>
     </a>`;
 
   let currentNav = '';

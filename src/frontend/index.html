@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="MyGES-Mieux — Portail étudiant nouvelle génération.">
-  <title>MyGES-Mieux — Connexion & Inscription</title>
+  <meta name="description" content="MieuxGES — Portail étudiant nouvelle génération.">
+  <title>MieuxGES — Connexion & Inscription</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -16,7 +16,7 @@
     <div class="login-left">
       <div class="login-branding">
         <div class="brand-icon">🎓</div>
-        <h1><span>MyGES-Mieux</span></h1>
+        <h1><span>MieuxGES</span></h1>
         <p>Votre portail étudiant repensé. Plus rapide, plus clair, plus efficace.</p>
         <div class="login-features">
           <div class="login-feature">
@@ -103,8 +103,7 @@
         </div>
 
         <div class="login-footer">
-          <p style="margin-top: 24px;">Besoin d'aide ? <a href="status.html">Tester le backend / base de données</a></p>
-          <p style="margin-top: 16px;">© 2026 MyGES-Mieux</p>
+          <p style="margin-top: 16px;">© 2026 MieuxGES</p>
         </div>
       </div>
     </div>
@@ -112,6 +111,26 @@
 
   <script src="shared.js"></script>
   <script>
+    // Handle auth redirection notifications
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('auth') === 'required') {
+      showToast('Veuillez vous connecter pour accéder à cette page', 'warning');
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (urlParams.get('auth') === 'expired') {
+      showToast('Session expirée, veuillez vous reconnecter', 'warning');
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    function handleTestBackendClick(e) {
+      const token = localStorage.getItem('myges_token');
+      if (!token) {
+        e.preventDefault();
+        showToast('Veuillez vous connecter pour accéder aux diagnostics système', 'warning');
+        return false;
+      }
+      return true;
+    }
+
     function switchAuthMode(mode) {
       const isLogin = mode === 'login';
       document.getElementById('tabLogin').classList.toggle('active', isLogin);
