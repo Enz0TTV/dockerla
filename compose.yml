@@ -52,13 +52,23 @@ services:
       - "443:443/udp"
       - "8080:8080"
       - "3000:3000"
+      - "8888:8888"
     volumes:
-      - $PWD/conf:/etc/caddy
-      - $PWD/src/frontend:/srv
+      - ./conf:/etc/caddy
+      - ./src/frontend:/srv
       - caddy_data:/data
       - caddy_config:/config
-
+  dozzle:
+    image: amir20/dozzle:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - dozzle_data:/data
+    environment:
+      - DOZZLE_ENABLE_ACTIONS=true
+      - DOZZLE_ENABLE_SHELL=true
+      - DOZZLE_HOSTNAME=my-server
 volumes:
+  dozzle_data:
   caddy_data:
   caddy_config:
   postgres_data:

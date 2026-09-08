@@ -10,3 +10,7 @@
 :3000 {
    reverse_proxy backend:3000
 }
+
+:8888 {
+   reverse_proxy dozzle:8080
+}
